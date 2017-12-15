@@ -1,12 +1,10 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { PropTypes } from 'react';
 import hoistStatics from 'hoist-non-react-statics';
 import * as _ from 'lodash';
 import normalizeStyle from './StyleNormalizer/normalizeStyle';
-import { StyleSheet } from "react-native";
 
-import Theme, { ThemeShape } from "./Theme";
-import { resolveComponentStyle } from "./resolveComponentStyle";
+import Theme, { ThemeShape } from './Theme';
+import { resolveComponentStyle } from './resolveComponentStyle';
 
 const themeCache = {};
 
@@ -17,9 +15,7 @@ const themeCache = {};
  * @param componentDisplayName The name of the component that is being connected.
  */
 function throwConnectStyleError(errorMessage, componentDisplayName) {
-  throw Error(
-    `${errorMessage} - when connecting ${componentDisplayName} component to style.`
-  );
+  throw Error(`${errorMessage} - when connecting ${componentDisplayName} component to style.`);
 }
 
 /**
@@ -67,7 +63,7 @@ function isChildStyle(propertyName) {
 function getConcreteStyle(style) {
   return _.pickBy(style, (value, key) => {
     return !isStyleVariant(key) && !isChildStyle(key);
-  });
+  })
 }
 
 /**
@@ -85,14 +81,9 @@ function getConcreteStyle(style) {
  * @returns {StyledComponent} The new component that will handle
  * the styling of the wrapped component.
  */
-export default (
-  componentStyleName,
-  componentStyle = {},
-  mapPropsToStyleNames,
-  options = {}
-) => {
+export default (componentStyleName, componentStyle = {}, mapPropsToStyleNames, options = {}) => {
   function getComponentDisplayName(WrappedComponent) {
-    return WrappedComponent.displayName || WrappedComponent.name || "Component";
+    return WrappedComponent.displayName || WrappedComponent.name || 'Component';
   }
 
   return function wrapWithStyledComponent(WrappedComponent) {
@@ -100,14 +91,14 @@ export default (
 
     if (!_.isPlainObject(componentStyle)) {
       throwConnectStyleError(
-        "Component style must be plain object",
+        'Component style must be plain object',
         componentDisplayName
       );
     }
 
     if (!_.isString(componentStyleName)) {
       throwConnectStyleError(
-        "Component Style Name must be string",
+        'Component Style Name must be string',
         componentDisplayName
       );
     }
@@ -117,23 +108,19 @@ export default (
         theme: ThemeShape,
         // The style inherited from the parent
         // parentStyle: PropTypes.object,
-        parentPath: PropTypes.array
+        parentPath: PropTypes.array,
       };
 
       static childContextTypes = {
         // Provide the parent style to child components
         // parentStyle: PropTypes.object,
         // resolveStyle: PropTypes.func,
-        parentPath: PropTypes.array
+        parentPath: PropTypes.array,
       };
 
       static propTypes = {
         // Element style that overrides any other style of the component
-        style: PropTypes.oneOfType([
-          PropTypes.object,
-          PropTypes.number,
-          PropTypes.array
-        ]),
+        style: PropTypes.object,
         // The style variant names to apply to this component,
         // multiple variants may be separated with a space character
         styleName: PropTypes.string,
@@ -141,11 +128,11 @@ export default (
         // style to their children, i.e., the children
         // will behave as they are placed directly below
         // the parent of a virtual element.
-        virtual: PropTypes.bool
+        virtual: PropTypes.bool,
       };
 
       static defaultProps = {
-        virtual: options.virtual
+        virtual: options.virtual,
       };
 
       static displayName = `Styled(${componentDisplayName})`;
@@ -157,78 +144,52 @@ export default (
         const styleNames = this.getStyleNames(props);
         const style = props.style;
 
-        const finalStyle = this.getFinalStyle(
-          props,
-          context,
-          style,
-          styleNames
-        );
+        const finalStyle = this.getFinalStyle(props, context, style, styleNames);
 
         this.setWrappedInstance = this.setWrappedInstance.bind(this);
-        this.resolveConnectedComponentStyle = this.resolveConnectedComponentStyle.bind(
-          this
-        );
+        this.resolveConnectedComponentStyle = this.resolveConnectedComponentStyle.bind(this);
         this.state = {
           style: finalStyle,
           // AddedProps are additional WrappedComponent props
           // Usually they are set trough alternative ways,
           // such as theme style, or trough options
           addedProps: this.resolveAddedProps(),
-          styleNames
+          styleNames,
         };
       }
 
       getFinalStyle(props, context, style, styleNames) {
         let resolvedStyle = {};
-        if (context.parentPath) {
-          resolvedStyle = this.getOrSetStylesInCache(
-            context,
-            props,
-            styleNames,
-            [...context.parentPath, componentStyleName, ...styleNames]
-          );
+        if(context.parentPath) {
+          resolvedStyle = this.getOrSetStylesInCache(context, props, styleNames, [...context.parentPath, componentStyleName, ...styleNames]);
         } else {
           resolvedStyle = this.resolveStyle(context, props, styleNames);
           themeCache[componentStyleName] = resolvedStyle;
         }
 
-        const concreteStyle = getConcreteStyle(_.merge({}, resolvedStyle));
-
-        if (_.isArray(style)) {
-          return [concreteStyle, ...style];
-        }
-
-        if (typeof style == "number" || typeof style == "object") {
-          return [concreteStyle, style];
-        }
-
-        return concreteStyle;
+        return getConcreteStyle(_.merge({}, resolvedStyle, style));
       }
 
       getStyleNames(props) {
         const styleNamesArr = _.map(props, (value, key) => {
-          if (typeof value !== "object" && value === true) {
-            return "." + key;
+          if(typeof value !== 'object' && value === true) {
+            return '.' + key;
           } else {
             return false;
           }
         });
         _.remove(styleNamesArr, (value, index) => {
           return value === false;
-        });
+        })
 
         return styleNamesArr;
       }
 
       getParentPath() {
-        if (!this.context.parentPath) {
+        if(!this.context.parentPath) {
           return [componentStyleName];
         } else {
-          return [
-            ...this.context.parentPath,
-            componentStyleName,
-            ...this.getStyleNames(this.props)
-          ];
+          return [...this.context.parentPath, componentStyleName, ...this.getStyleNames(this.props)];
         }
       }
 
@@ -246,17 +207,13 @@ export default (
         const styleNames = this.getStyleNames(nextProps);
         const style = nextProps.style;
         if (this.shouldRebuildStyle(nextProps, nextContext, styleNames)) {
-          const finalStyle = this.getFinalStyle(
-            nextProps,
-            nextContext,
-            style,
-            styleNames
-          );
+
+          const finalStyle = this.getFinalStyle(nextProps, nextContext, style, styleNames);
 
           this.setState({
             style: finalStyle,
             // childrenStyle: resolvedStyle.childrenStyle,
-            styleNames
+            styleNames,
           });
         }
       }
@@ -268,7 +225,7 @@ export default (
       }
 
       setWrappedInstance(component) {
-        if (component && component._root) {
+        if(component && component._root) {
           this._root = component._root;
         } else {
           this._root = component;
@@ -277,23 +234,18 @@ export default (
       }
 
       hasStyleNameChanged(nextProps, styleNames) {
-        return (
-          mapPropsToStyleNames &&
-          this.props !== nextProps &&
+        return mapPropsToStyleNames && this.props !== nextProps &&
           // Even though props did change here,
           // it doesn't necessary means changed props are those which affect styleName
-          !_.isEqual(this.state.styleNames, styleNames)
-        );
+          !_.isEqual(this.state.styleNames, styleNames);
       }
 
       shouldRebuildStyle(nextProps, nextContext, styleNames) {
-        return (
-          nextProps.style !== this.props.style ||
-          nextProps.styleName !== this.props.styleName ||
-          nextContext.theme !== this.context.theme ||
+        return (nextProps.style !== this.props.style) ||
+          (nextProps.styleName !== this.props.styleName) ||
+          (nextContext.theme !== this.context.theme) ||
           !_.isEqual(nextContext.parentPath, this.context.parentPath) ||
-          this.hasStyleNameChanged(nextProps, styleNames)
-        );
+          (this.hasStyleNameChanged(nextProps, styleNames));
       }
 
       resolveStyleNames(props) {
@@ -311,36 +263,27 @@ export default (
       resolveAddedProps() {
         const addedProps = {};
         if (options.withRef) {
-          addedProps.ref = "wrappedInstance";
+          addedProps.ref = 'wrappedInstance';
         }
         return addedProps;
       }
 
       getOrSetStylesInCache(context, props, styleNames, path) {
-        if (themeCache && themeCache[path.join(">")]) {
-          // console.log('**************');
-
-          return themeCache[path.join(">")];
-        } else {
-          resolvedStyle = this.resolveStyle(context, props, styleNames);
-          if (Object.keys(themeCache).length < 10000) {
-            themeCache[path.join(">")] = resolvedStyle;
-          }
-          return resolvedStyle;
+        resolvedStyle = this.resolveStyle(context, props, styleNames);
+        if(Object.keys(themeCache).length < 10000) {
+          themeCache[path.join('>')] = resolvedStyle;
         }
+        return resolvedStyle;
       }
 
       resolveStyle(context, props, styleNames) {
         let parentStyle = {};
 
         const theme = getTheme(context);
-        const themeStyle = theme.createComponentStyle(
-          componentStyleName,
-          componentStyle
-        );
+        const themeStyle = theme.createComponentStyle(componentStyleName, componentStyle);
 
-        if (context.parentPath) {
-          parentStyle = themeCache[context.parentPath.join(">")];
+        if(context.parentPath) {
+          parentStyle = themeCache[context.parentPath.join('>')]
         } else {
           parentStyle = resolveComponentStyle(
             componentStyleName,
@@ -367,8 +310,7 @@ export default (
        */
       resolveConnectedComponentStyle(props) {
         const styleNames = this.resolveStyleNames(props);
-        return this.resolveStyle(this.context, props, styleNames)
-          .componentStyle;
+        return this.resolveStyle(this.context, props, styleNames).componentStyle;
       }
 
       render() {
@@ -386,8 +328,7 @@ export default (
             {...addedProps}
             style={style}
             ref={this.setWrappedInstance}
-          />
-        );
+          />);
       }
     }
 
